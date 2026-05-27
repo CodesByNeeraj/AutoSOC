@@ -1,4 +1,4 @@
-from crewai import Agent, Task, Crew
+from crewai import Agent, Task, Crew, LLM
 from langchain_anthropic import ChatAnthropic
 from pydantic import BaseModel
 from typing import List
@@ -8,9 +8,9 @@ import os
 load_dotenv()
 
 #claude as the llm for this agent
-llm = ChatAnthropic(
-    model="claude-sonnet-4-20250514",
-    anthropic_api_key=os.getenv("ANTHROPIC_API_KEY")
+llm = LLM(
+    model="anthropic/claude-sonnet-4-20250514",
+    api_key=os.getenv("ANTHROPIC_API_KEY")
 )
 
 #exact output structure crewai will enforce
@@ -93,7 +93,7 @@ async def triage_agent(raw_log: str) -> dict:
         verbose=True
     )
 
-    result = crew.kickoff()
+    result = await crew.kickoff_async()
 
     #crewai returns pydantic object when output json is set
     #convert to dict for the rest of the pipeline
