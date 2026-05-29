@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from db.database import get_db, Incident, Finding, Report
-from models.schemas import AlertInput, AnalysisResponse
+from models.schemas import AlertInput, AnalysisResponse, StatusUpdate
 from orchestrator import run_pipeline
 
 router = APIRouter()
@@ -66,12 +67,29 @@ async def get_report(incident_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+#manually resolve or reopen an incident
+@router.patch("/incidents/{incident_id}/status")
+async def update_status(incident_id: str, body: StatusUpdate, db: Session = Depends(get_db)):
+    try:
+        incident = db.query(Incident).filter(Incident.id == incident_id).first()
+        if not incident:
+            raise HTTPException(status_code=404, detail="incident not found")
+        if body.status not in ("open", "resolved"):
+            raise HTTPException(status_code=400, detail="status must be 'open' or 'resolved'")
+        incident.status = body.status
+        db.commit()
+        return incident
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 #get all incidents by priority
 @router.get("/incidents/priority/{priority}")
 async def get_incidents_by_priority(priority: str, db: Session = Depends(get_db)):
     try:
         incidents = db.query(Incident).filter(
-            Incident.severity == priority
+            func.lower(Incident.severity) == priority.lower()
         ).order_by(Incident.created_at.desc()).all()
         return incidents
     except Exception as e:
@@ -82,20 +100,18 @@ async def get_incidents_by_priority(priority: str, db: Session = Depends(get_db)
 async def get_stats(db: Session = Depends(get_db)):
     try:
         total = db.query(Incident).count()
-        open_incidents = db.query(Incident).filter(Incident.status == "open").count()
-        investigating = db.query(Incident).filter(Incident.status == "investigating").count()
-        complete = db.query(Incident).filter(Incident.status == "complete").count()
-        p0 = db.query(Incident).filter(Incident.severity == "p0").count()
-        p1 = db.query(Incident).filter(Incident.severity == "p1").count()
-        p2 = db.query(Incident).filter(Incident.severity == "p2").count()
-        p3 = db.query(Incident).filter(Incident.severity == "p3").count()
-        p4 = db.query(Incident).filter(Incident.severity == "p4").count()
+        open_incidents = db.query(Incident).filter(Incident.status.in_(["open", "complete"])).count()
+        resolved = db.query(Incident).filter(Incident.status == "resolved").count()
+        p0 = db.query(Incident).filter(func.lower(Incident.severity) == "p0", Incident.status != "resolved").count()
+        p1 = db.query(Incident).filter(func.lower(Incident.severity) == "p1").count()
+        p2 = db.query(Incident).filter(func.lower(Incident.severity) == "p2").count()
+        p3 = db.query(Incident).filter(func.lower(Incident.severity) == "p3").count()
+        p4 = db.query(Incident).filter(func.lower(Incident.severity) == "p4").count()
 
         return {
             "total": total,
             "open": open_incidents,
-            "investigating": investigating,
-            "complete": complete,
+            "resolved": resolved,
             "by_priority": {
                 "p0": p0,
                 "p1": p1,
