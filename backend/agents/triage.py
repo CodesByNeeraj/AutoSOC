@@ -98,7 +98,16 @@ async def triage_agent(raw_log: str) -> dict:
     #crewai returns pydantic object when output json is set
     #convert to dict for the rest of the pipeline
     try:
-        return result.json_dict
+        output = result.json_dict
+        # normalize priority to plain p0-p4 in case claude returns "P0" or "P0 - active breach"
+        raw_priority = output.get("priority", "p2").lower()
+        for level in ("p0", "p1", "p2", "p3", "p4"):
+            if level in raw_priority:
+                output["priority"] = level
+                break
+        else:
+            output["priority"] = "p2"
+        return output
     except Exception as e:
         print(f"[triage] output parse error: {e}")
         return {
