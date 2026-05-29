@@ -12,7 +12,14 @@ load_dotenv()
 DATABASE_URL = os.getenv("NEON_CONNECTION_STRING")
 
 #connect to postgres
-engine = create_engine(DATABASE_URL)
+# pool_pre_ping: test connection before use — prevents SSL drops from Neon's idle timeout
+# pool_recycle: replace connections older than 5 minutes
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    pool_recycle=300,
+    connect_args={"sslmode": "require", "connect_timeout": 10}
+)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
