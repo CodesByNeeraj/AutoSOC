@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+anthropic
+langgraph
+langchain
+langchain-anthropic
+python-dotenv
+aiohttp
+sqlalchemy
+pydantic
+psycopg2-binary
+dotenv
+crewai
+crewai-tools
+python-dotenv
+psycopg2
