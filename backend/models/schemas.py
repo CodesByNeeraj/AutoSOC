@@ -111,6 +111,9 @@ class StoredReportSchema(BaseModel):
 class StatsSchema(BaseModel):
     total: int
     open: int
-    investigating: int
-    complete: int
+    resolved: int
     by_priority: dict
+
+#manual status update
+class StatusUpdate(BaseModel):
+    status: str
