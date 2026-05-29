@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { getIncident, getReport, getFindings } from '../services/api'
+import { exportIncidentPDF } from '../utils/exportPDF'
 
 const priorityColor = {
   p0: 'badge--p0',
@@ -18,6 +19,7 @@ export default function Incident() {
   const [incident, setIncident] = useState(null)
   const [activeTab, setActiveTab] = useState('triage')
   const [loading, setLoading] = useState(!location.state)
+  const [exporting, setExporting] = useState(false)
 
 useEffect(() => {
   if (!location.state) {
@@ -69,6 +71,14 @@ useEffect(() => {
   const response = data?.response
   const report = data?.report
 
+  function handleExport() {
+    setExporting(true)
+    setTimeout(() => {
+      exportIncidentPDF({ incidentId: id, triage, investigation, response, report })
+      setExporting(false)
+    }, 0)
+  }
+
   return (
     <>
       <div className="page-header">
@@ -85,6 +95,16 @@ useEffect(() => {
             <span className={`badge ${priorityColor[triage.priority.toLowerCase()] ?? 'badge--p4'}`}>
               {triage.priority.toLowerCase()}
             </span>
+          )}
+          {report && (
+            <button
+              className="btn btn--primary"
+              onClick={handleExport}
+              disabled={exporting}
+              style={{ fontSize: '12px', padding: '6px 14px' }}
+            >
+              {exporting ? 'exporting...' : '↓ export pdf'}
+            </button>
           )}
           <button
             className="btn btn--ghost"
