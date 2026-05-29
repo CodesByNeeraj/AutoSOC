@@ -5,6 +5,7 @@ from agents.report import report_agent
 from db.database import SessionLocal, Incident, Finding, Report
 from datetime import datetime
 import uuid
+import json
 
 #runs all 4 agents in sequence and stores results in db
 async def run_pipeline(raw_log: str, source: str = "manual") -> dict:
@@ -28,12 +29,12 @@ async def run_pipeline(raw_log: str, source: str = "manual") -> dict:
         db.add(incident)
         db.commit()
 
-        #save triage finding
+        #save triage finding as proper json
         db.add(Finding(
             id=str(uuid.uuid4()),
             incident_id=incident_id,
             agent="triage",
-            content=str(triage_result),
+            content=json.dumps(triage_result),
             created_at=datetime.utcnow()
         ))
         db.commit()
@@ -42,12 +43,12 @@ async def run_pipeline(raw_log: str, source: str = "manual") -> dict:
         print(f"[investigation] starting for incident {incident_id}")
         investigation_result = await investigation_agent(raw_log, triage_result)
 
-        #save investigation finding
+        #save investigation finding as proper json
         db.add(Finding(
             id=str(uuid.uuid4()),
             incident_id=incident_id,
             agent="investigation",
-            content=str(investigation_result),
+            content=json.dumps(investigation_result),
             created_at=datetime.utcnow()
         ))
         db.commit()
@@ -56,12 +57,12 @@ async def run_pipeline(raw_log: str, source: str = "manual") -> dict:
         print(f"[response] starting for incident {incident_id}")
         response_result = await response_agent(triage_result, investigation_result)
 
-        #save response finding
+        #save response finding as proper json
         db.add(Finding(
             id=str(uuid.uuid4()),
             incident_id=incident_id,
             agent="response",
-            content=str(response_result),
+            content=json.dumps(response_result),
             created_at=datetime.utcnow()
         ))
         db.commit()
@@ -70,11 +71,11 @@ async def run_pipeline(raw_log: str, source: str = "manual") -> dict:
         print(f"[report] starting for incident {incident_id}")
         report_result = await report_agent(triage_result, investigation_result, response_result)
 
-        #save final report
+        #save final report as proper json
         db.add(Report(
             id=str(uuid.uuid4()),
             incident_id=incident_id,
-            content=str(report_result),
+            content=json.dumps(report_result),
             created_at=datetime.utcnow()
         ))
 
