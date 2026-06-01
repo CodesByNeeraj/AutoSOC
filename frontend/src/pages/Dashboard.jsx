@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getStats, getIncidents } from '../services/api'
+import { getStats, getIncidents, updateIncidentStatus } from '../services/api'
 
 const priorityColor = {
   p0: 'badge--p0',
@@ -11,9 +11,9 @@ const priorityColor = {
 }
 
 const statusColor = {
-  open: 'badge--open',
-  investigating: 'badge--investigating',
-  complete: 'badge--complete',
+  open: 'badge--investigating',
+  complete: 'badge--investigating',
+  resolved: 'badge--complete',
 }
 
 export default function Dashboard() {
@@ -36,6 +36,17 @@ export default function Dashboard() {
     }
     load()
   }, [])
+
+  async function handleResolve(e, id) {
+    e.stopPropagation()
+    try {
+      await updateIncidentStatus(id, 'resolved')
+      setIncidents(prev => prev.map(i => i.id === id ? { ...i, status: 'resolved' } : i))
+      setStats(prev => prev ? { ...prev, open: prev.open - 1, resolved: (prev.resolved ?? 0) + 1 } : prev)
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   return (
     <>
@@ -68,15 +79,9 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="stat-card">
-                <div className="stat-label">investigating</div>
-                <div className="stat-value stat-value--blue">
-                  {stats?.investigating ?? 0}
-                </div>
-              </div>
-              <div className="stat-card">
                 <div className="stat-label">resolved</div>
                 <div className="stat-value stat-value--green">
-                  {stats?.complete ?? 0}
+                  {stats?.resolved ?? 0}
                 </div>
               </div>
               <div className="stat-card">
@@ -110,6 +115,7 @@ export default function Dashboard() {
                       <th>title</th>
                       <th>status</th>
                       <th>created</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -125,12 +131,25 @@ export default function Dashboard() {
                         </td>
                         <td>{inc.title}</td>
                         <td>
-                          <span className={`badge ${statusColor[inc.status] ?? 'badge--open'}`}>
+                          <span className={`badge ${statusColor[inc.status] ?? 'badge--investigating'}`}>
                             {inc.status}
                           </span>
                         </td>
                         <td className="mono" style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>
                           {new Date(inc.created_at).toLocaleString()}
+                        </td>
+                        <td onClick={e => e.stopPropagation()}>
+                          {inc.status !== 'resolved' && inc.status !== 'investigating' ? (
+                            <button
+                              className="btn btn--resolve"
+                              style={{ fontSize: '12px', padding: '5px 14px' }}
+                              onClick={e => handleResolve(e, inc.id)}
+                            >
+                              ✓ resolve
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>—</span>
+                          )}
                         </td>
                       </tr>
                     ))}
