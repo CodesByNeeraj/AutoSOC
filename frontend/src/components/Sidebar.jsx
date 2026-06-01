@@ -10,7 +10,7 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <span className="brand-icon">⬡</span>
+        <img src="/autosoc_favicon.svg" alt="AutoSOC" className="brand-icon" />
         <span className="brand-name">AUTO<span>SOC</span></span>
       </div>
       <nav className="sidebar-nav">
