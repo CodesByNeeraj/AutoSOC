@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getIncidents } from '../services/api'
+import { getIncidents, updateIncidentStatus } from '../services/api'
 
 const priorityColor = {
   p0: 'badge--p0',
@@ -11,9 +11,9 @@ const priorityColor = {
 }
 
 const statusColor = {
-  open: 'badge--open',
-  investigating: 'badge--investigating',
-  complete: 'badge--complete',
+  open: 'badge--investigating',
+  complete: 'badge--investigating',
+  resolved: 'badge--complete',
 }
 
 export default function Incidents() {
@@ -21,6 +21,16 @@ export default function Incidents() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const navigate = useNavigate()
+
+  async function handleResolve(e, id) {
+    e.stopPropagation()
+    try {
+      await updateIncidentStatus(id, 'resolved')
+      setIncidents(prev => prev.map(i => i.id === id ? { ...i, status: 'resolved' } : i))
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -91,6 +101,7 @@ export default function Incidents() {
                   <th>status</th>
                   <th>source</th>
                   <th>created</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -106,7 +117,7 @@ export default function Incidents() {
                     </td>
                     <td>{inc.title}</td>
                     <td>
-                      <span className={`badge ${statusColor[inc.status] ?? 'badge--open'}`}>
+                      <span className={`badge ${statusColor[inc.status] ?? 'badge--investigating'}`}>
                         {inc.status}
                       </span>
                     </td>
@@ -115,6 +126,19 @@ export default function Incidents() {
                     </td>
                     <td className="mono" style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>
                       {new Date(inc.created_at).toLocaleString()}
+                    </td>
+                    <td onClick={e => e.stopPropagation()}>
+                      {inc.status !== 'resolved' && inc.status !== 'investigating' ? (
+                        <button
+                          className="btn btn--resolve"
+                          style={{ fontSize: '12px', padding: '5px 14px' }}
+                          onClick={e => handleResolve(e, inc.id)}
+                        >
+                          ✓ resolve
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
