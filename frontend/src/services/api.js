@@ -46,3 +46,14 @@ export const getStats = async () => {
   if (!response.ok) throw new Error('failed to fetch stats')
   return response.json()
 }
+
+//manually resolve or reopen an incident
+export const updateIncidentStatus = async (id, status) => {
+  const response = await fetch(`${BASE_URL}/incidents/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status })
+  })
+  if (!response.ok) throw new Error('failed to update status')
+  return response.json()
+}
